@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from api.user import routes as account_routes
 from api.staff import routes as staff_routes
+from api.ticket import routes as ticket_routes
 from core.settings import settings
 from db.base_class import Base
 from dependencies.session import engine
@@ -28,6 +29,7 @@ app.add_middleware(
 def include_app(_app):
     _app.include_router(account_routes.router, tags=["user"], prefix="/api/user")
     _app.include_router(staff_routes.router, tags=["staff"], prefix="/api/staff")
+    _app.include_router(ticket_routes.router, tags=["ticket"], prefix="/api/ticket")
 
 
 def create_tables():  # new

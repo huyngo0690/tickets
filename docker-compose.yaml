@@ -1,0 +1,55 @@
+version: '3.9'
+services:
+  #  application:
+  #    build:
+  #      context: application
+  #      dockerfile: Dockerfile
+  #    container_name: backend
+  #    image: application
+  #    restart: unless-stopped
+  #    environment:
+  #      MYSQL_USER: ${MYSQL_USER}
+  #      MYSQL_DB: ${MYSQL_DB}
+  #      MYSQL_HOST: ${MYSQL_HOST}
+  #      MYSQL_PORT: ${MYSQL_PORT-3306}
+  #      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+  #      DB_URI: ${DB_URI}
+  #      APP_PORT: ${APP_PORT}
+  #      DEBUG_PORT: ${DEBUG_PORT}
+  #      LOGGING_CONF: ${LOGGING_CONF}
+  #      LOGGER: ${LOGGER}
+  #      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+  #      REFRESH_TOKEN_EXPIRE_MINUTES: ${REFRESH_TOKEN_EXPIRE_MINUTES}
+  #      ALGORITHM: ${ALGORITHM}
+  #      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+  #      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY}
+  #      REDIS_HOST: ${REDIS_HOST}
+  #      REDIS_PORT: ${REDIS_PORT}
+  #      REDIS_EXPIRE_TIME: ${REDIS_EXPIRE_TIME}
+  #      TZ: Asia/Ho_Chi_Minh
+  #    volumes:
+  #      - ./application/logs:/app/logs 
+  #    ports:
+  #      - "8080:8080"
+  #    networks:
+  #      - backend
+
+  mysql-db:
+    image: mysql:latest
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ticket
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - backend
+
+volumes:
+  mysql_data:
+
+networks:
+  backend:
+    driver: bridge

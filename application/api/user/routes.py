@@ -6,6 +6,7 @@ from fastapi import Depends, status
 from core.auth_bearer import JWTBearer
 from dependencies.account_service import get_account_service
 from schemas import account_schema
+from schemas.reply_schema import ReplySchema, ReplyCreateSchema
 from schemas.ticket_schema import TicketCreateSchema
 from services.account_services import AccountService
 
@@ -34,7 +35,8 @@ async def login(
 
 
 @router.post("/refresh_token/")
-async def refresh_token(_refresh_token: str, account_service: AccountService = Depends(get_account_service)):
+async def refresh_token(_refresh_token: str,
+                        account_service: AccountService = Depends(get_account_service)):
     new_access_token, new_refresh_token = await account_service.refresh_token(_refresh_token)
     return {"accessToken": new_access_token, "refreshToken": new_refresh_token}
 
@@ -46,7 +48,8 @@ async def logout(_refresh_token: str, account_service: AccountService = Depends(
 
 
 @router.post("/createTicket/")
-async def create_ticket(ticket_data: TicketCreateSchema, account_id=Depends(JWTBearer()),
+async def create_ticket(ticket_data: TicketCreateSchema,
+                        account_id=Depends(JWTBearer()),
                         account_service: AccountService = Depends(get_account_service)):
     if await account_service.is_staff(account_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only customers can create tickets")
@@ -60,7 +63,3 @@ async def get_tickets(page: Optional[int] = 0,
                       account_service: AccountService = Depends(get_account_service)):
     return await account_service.get_tickets_by_account_id(account_id, page, pageSize)
 
-
-# @router.post("/tickets/{ticket_id}/replies/", response_model=ReplySchema)
-# async def add_reply_to_ticket(ticket_id: int, reply_data: ReplyCreateSchema, current_user: User = Depends(get_current_user), user_service: UserService = Depends(get_user_service)):
-#     return await user_service.create_reply(ticket_id, reply_data, current_user.id)

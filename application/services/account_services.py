@@ -26,12 +26,12 @@ class AccountService:
         return refresh_token
 
     @staticmethod
-    async def create_access_token(user_id: int):
+    async def create_access_token(account_id: int):
         expires_delta = datetime.datetime.utcnow() + datetime.timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
-        to_encode = {"exp": expires_delta, "sub": str(user_id)}
+        to_encode = {"exp": expires_delta, "sub": str(account_id)}
         access_token = jwt.encode(to_encode, settings.JWT_SECRET_KEY, settings.ALGORITHM)
 
         return access_token
@@ -60,11 +60,20 @@ class AccountService:
     async def get_tickets_by_account_id(self, page: int, page_size: int, account_id: int):
         return await self.ticket_repository.get_tickets_by_account(page, page_size, account_id)
 
-    async def get_tickets(self, page: int, page_size: int, user_id: int = None):
-        return await self.ticket_repository.get_tickets(page, page_size, user_id)
+    async def get_tickets(self, page: int, page_size: int, account_id: int = None):
+        return await self.ticket_repository.get_tickets(page, page_size, account_id)
 
-    async def create_reply(self, ticket_id: int, reply_data, user_id: int):
-        return await self.ticket_repository.create_reply(ticket_id, reply_data, user_id)
+    async def create_reply(self, ticket_id: int, reply_data, account_id: int):
+        return await self.ticket_repository.create_reply(ticket_id, reply_data, account_id)
+
+    async def get_replies_for_ticket(self, ticket_id: int):
+        return await self.ticket_repository.get_replies_for_ticket(ticket_id)
+
+    async def update_reply(self, reply_id: int, new_content: str, account_id: int):
+        return await self.ticket_repository.update_reply(reply_id, new_content, account_id)
+
+    async def delete_reply(self, reply_id: int, account_id: int):
+        return await self.ticket_repository.delete_reply(reply_id, account_id)
 
     async def is_staff(self, account_id: int) -> bool:
         user = await self.account_repository.get_account(account_id)

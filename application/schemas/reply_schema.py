@@ -6,8 +6,8 @@ class ReplyCreateSchema(BaseModel):
 
 
 class ReplySchema(BaseModel):
-    id: int
-    ticket_id: int
+    replyId: int
+    ticketId: int
     content: str
     createdBy: str
     createdDate: str

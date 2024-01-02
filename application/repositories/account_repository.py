@@ -2,7 +2,7 @@ import datetime
 import logging
 
 from fastapi import HTTPException, status
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.exc import SQLAlchemyError
 
 from core.auth import get_hashed_password
 from core.errors_handler import ErrorMessage, ApiStatusMessage
@@ -16,27 +16,42 @@ class AccountRepository:
         self.session = session
 
     async def create_account(self, request: AccountCreateSchema):
-        user_name = request.username
-        account = (
-            self.session.query(Account)
-            .filter(Account.user_name == user_name)
-            .first()
-        )
-        if account:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ErrorMessage.ACCOUNT_EXISTED.value,
+        try:
+            user_name = request.username
+            account = (
+                self.session.query(Account)
+                .filter(Account.user_name == user_name)
+                .first()
             )
-        encrypted_password = get_hashed_password(request.password)
-        new_account = Account(
-            user_name=user_name,
-            email=request.email,
-            password=encrypted_password,
-            is_admin=request.isAdmin,
-        )
-        self.session.add(new_account)
-        self.session.commit()
-        return {"message": ApiStatusMessage.SUCCESS.value}
+            if account:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=ErrorMessage.ACCOUNT_EXISTED.value,
+                )
+            encrypted_password = get_hashed_password(request.password)
+            new_account = Account(
+                user_name=user_name,
+                email=request.email,
+                password=encrypted_password,
+                is_admin=request.isAdmin,
+            )
+            self.session.add(new_account)
+            self.session.commit()
+            return {"message": ApiStatusMessage.SUCCESS.value}
+        except SQLAlchemyError as err:
+            err = str(err.__dict__["orig"])
+            self.session.rollback()
+            logging.error(f"{err}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=err
+            )
+        except Exception as e:
+            self.session.rollback()
+            logging.info(f"{str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e),
+            )
 
     async def update_account(self, account_id: str, request):
         pass
@@ -66,11 +81,18 @@ class AccountRepository:
             self.session.commit()
             return account
         except SQLAlchemyError as err:
-            self.session.rollback()
             err = str(err.__dict__["orig"])
+            self.session.rollback()
             logging.error(f"{err}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=err
+            )
+        except Exception as e:
+            logging.info(f"{str(e)}")
+            self.session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e),
             )
 
     async def create_refresh_token(self, account_id: int, token: str, expires_at: datetime):
@@ -86,16 +108,22 @@ class AccountRepository:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=err
             )
+        except Exception as e:
+            self.session.rollback()
+            logging.info(f"{str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e),
+            )
 
     async def get_refresh_token(self, token: str):
         try:
             return self.session.query(Token).filter(Token.token == token).first()
-        except SQLAlchemyError as err:
-            self.session.rollback()
-            err = str(err.__dict__["orig"])
-            logging.error(f"{err}")
+        except Exception as e:
+            logging.info(f"{str(e)}")
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=err
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e),
             )
 
     async def revoke_refresh_token(self, token: str):
@@ -110,4 +138,11 @@ class AccountRepository:
             logging.error(f"{err}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=err
+            )
+        except Exception as e:
+            self.session.rollback()
+            logging.info(f"{str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e),
             )

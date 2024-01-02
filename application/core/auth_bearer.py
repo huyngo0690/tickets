@@ -32,7 +32,7 @@ class JWTBearer(HTTPBearer):
                 raise HTTPException(
                     status_code=401, detail="Invalid token or expired token."
                 )
-            account = decode_jwt(credentials.credentials).get("sub")
+            account = int(decode_jwt(credentials.credentials).get("sub"))
             return account
         else:
             raise HTTPException(status_code=403, detail="Invalid authorization code.")
