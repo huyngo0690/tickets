@@ -12,10 +12,10 @@ run_app() {
     echo "MYSQL_ROOT_PASSWORD=mysqlpassword" > .env
     echo "MYSQL_USER=root" >> .env
     echo "MYSQL_DB=ticket" >> .env
-    echo "MYSQL_HOST=localhost" >> .env
+    echo "MYSQL_HOST=mysql-db" >> .env
     echo "MYSQL_PORT=3306" >> .env
     echo "MYSQL_PASSWORD=mysqlpassword" >> .env
-    echo "DB_URI=mysql+pymysql://root:HelloWorld123@localhost:3306/ticket" >> .env
+    echo "DB_URI=mysql+pymysql://root:mysqlpassword@mysql-db:3306/ticket" >> .env
     echo "APP_PORT=8080" >> .env
     echo "DEBUG_PORT=8081" >> .env
     echo "The .env file has been created with API_KEY set to your provided key."

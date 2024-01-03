@@ -14,7 +14,7 @@ from services.account_services import AccountService
 router = APIRouter()
 
 
-@router.post("/{ticket_id}/replies/", response_model=ReplySchema)
+@router.post("/ticket/{ticket_id}/replies/", response_model=ReplySchema)
 async def add_reply_to_ticket(
     ticket_id: int,
     reply_data: ReplyCreateSchema,
@@ -24,7 +24,7 @@ async def add_reply_to_ticket(
     return await account_service.create_reply(ticket_id, reply_data, account_id)
 
 
-@router.get("/{ticket_id}/replies/", response_model=List[ReplySchema])
+@router.get("/ticket/{ticket_id}/replies/", response_model=List[ReplySchema])
 async def get_replies(
     ticket_id: int,
     account_id=Depends(JWTBearer()),
@@ -33,7 +33,7 @@ async def get_replies(
     return await account_service.get_replies_for_ticket(ticket_id)
 
 
-@router.put("/replies/{reply_id}", response_model=ReplySchema)
+@router.put("/ticket/replies/{reply_id}", response_model=ReplySchema)
 async def update_reply(
     reply_id: int,
     reply_data: ReplyCreateSchema,
