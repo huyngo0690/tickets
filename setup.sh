@@ -9,7 +9,6 @@ prompt_user() {
 }
 
 run_app() {
-    read -p "Please enter your OpenAI API key: " api_key
     echo "MYSQL_ROOT_PASSWORD=mysqlpassword" > .env
     echo "MYSQL_USER=root" >> .env
     echo "MYSQL_DB=ticket" >> .env
@@ -21,7 +20,7 @@ run_app() {
     echo "DEBUG_PORT=8081" >> .env
     echo "The .env file has been created with API_KEY set to your provided key."
 
-    docker-compose build && docker-compose up -d
+    docker compose build && docker compose up -d
 
 
 

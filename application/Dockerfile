@@ -32,9 +32,7 @@ WORKDIR /app
 USER root
 COPY . /app
 
-RUN chmod +x ./run.sh
-# Run Alembic migrations
-RUN alembic upgrade head
+RUN chmod +x ./start.sh
 
 EXPOSE 8080
 CMD ["sh", "start.sh"]
