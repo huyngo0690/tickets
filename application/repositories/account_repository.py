@@ -8,7 +8,7 @@ from core.auth import get_hashed_password
 from core.errors_handler import ErrorMessage, ApiStatusMessage
 from db.tables.account import Account
 from db.tables.token import Token
-from schemas.account_schema import AccountCreateSchema
+from schemas.account_schema import AccountCreateSchema, ShowAccountSchema
 
 
 class AccountRepository:
@@ -37,7 +37,11 @@ class AccountRepository:
             )
             self.session.add(new_account)
             self.session.commit()
-            return {"message": ApiStatusMessage.SUCCESS.value}
+            return ShowAccountSchema(
+                username=user_name,
+                email=request.email,
+                isAdmin=request.isAdmin,
+            )
         except SQLAlchemyError as err:
             err = str(err.__dict__["orig"])
             self.session.rollback()
@@ -72,10 +76,14 @@ class AccountRepository:
 
     async def get_user_by_username_or_email(self, username_or_email):
         try:
-            account = self.session.query(Account).filter(
-                (Account.user_name == username_or_email) |
-                (Account.email == username_or_email)
-            ).first()
+            account = (
+                self.session.query(Account)
+                .filter(
+                    (Account.user_name == username_or_email)
+                    | (Account.email == username_or_email)
+                )
+                .first()
+            )
             account.last_login = datetime.datetime.utcnow()
             self.session.add(account)
             self.session.commit()
@@ -95,9 +103,13 @@ class AccountRepository:
                 detail=str(e),
             )
 
-    async def create_refresh_token(self, account_id: int, token: str, expires_at: datetime):
+    async def create_refresh_token(
+        self, account_id: int, token: str, expires_at: datetime
+    ):
         try:
-            new_refresh_token = Token(account_id=account_id, refresh_token=token, expires_at=expires_at)
+            new_refresh_token = Token(
+                account_id=account_id, refresh_token=token, expires_at=expires_at
+            )
             self.session.add(new_refresh_token)
             self.session.commit()
             return new_refresh_token

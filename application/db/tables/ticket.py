@@ -4,7 +4,7 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     String,
-    BigInteger, Text, DateTime,
+    Text, DateTime, Integer,
 )
 from sqlalchemy.orm import mapped_column, relationship
 from db.base_class import Base
@@ -12,7 +12,7 @@ from db.base_class import Base
 
 class Ticket(Base):
     __tablename__ = "tickets"
-    id = Column(BigInteger, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     title = Column(String(100), index=True, nullable=False)
     description = Column(Text)
     created_by_id = mapped_column(ForeignKey("accounts.id"), nullable=False)

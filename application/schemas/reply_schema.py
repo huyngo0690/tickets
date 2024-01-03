@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -7,7 +9,7 @@ class ReplyCreateSchema(BaseModel):
 
 class ReplySchema(BaseModel):
     replyId: int
-    ticketId: int
+    ticketId: Optional[int] = None
     content: str
     createdBy: str
     createdDate: str

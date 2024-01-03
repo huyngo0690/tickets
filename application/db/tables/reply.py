@@ -3,7 +3,7 @@ from db.tables.ticket import Ticket
 from sqlalchemy import (
     Column,
     ForeignKey,
-    BigInteger, Text, DateTime, Integer,
+    Text, DateTime, Integer,
 )
 from sqlalchemy.orm import relationship, mapped_column
 from db.base_class import Base
@@ -12,7 +12,7 @@ from db.base_class import Base
 class Reply(Base):
     __tablename__ = "replies"
 
-    id = Column(BigInteger, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     content = Column(Text)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     ticket_id = mapped_column(ForeignKey("tickets.id"))

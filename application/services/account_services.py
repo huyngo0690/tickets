@@ -11,7 +11,9 @@ from schemas.account_schema import AccountCreateSchema, AccountLoginSchema
 
 
 class AccountService:
-    def __init__(self, account_repository: AccountRepository, ticket_repository: TicketRepository):
+    def __init__(
+        self, account_repository: AccountRepository, ticket_repository: TicketRepository
+    ):
         self.account_repository = account_repository
         self.ticket_repository = ticket_repository
 
@@ -21,8 +23,12 @@ class AccountService:
     async def create_refresh_token(self, user_id: int):
         expire = datetime.datetime.utcnow() + datetime.timedelta(days=7)
         token_payload = {"exp": expire, "sub": str(user_id)}
-        refresh_token = jwt.encode(token_payload, settings.JWT_SECRET_KEY, settings.ALGORITHM)
-        await self.account_repository.create_refresh_token(user_id, refresh_token, expire)
+        refresh_token = jwt.encode(
+            token_payload, settings.JWT_SECRET_KEY, settings.ALGORITHM
+        )
+        await self.account_repository.create_refresh_token(
+            user_id, refresh_token, expire
+        )
         return refresh_token
 
     @staticmethod
@@ -32,18 +38,30 @@ class AccountService:
         )
 
         to_encode = {"exp": expires_delta, "sub": str(account_id)}
-        access_token = jwt.encode(to_encode, settings.JWT_SECRET_KEY, settings.ALGORITHM)
+        access_token = jwt.encode(
+            to_encode, settings.JWT_SECRET_KEY, settings.ALGORITHM
+        )
 
         return access_token
 
     async def refresh_token(self, token: str):
         db_token = await self.account_repository.get_refresh_token(token)
-        if not db_token or db_token.revoked or db_token.expires_at < datetime.datetime.utcnow():
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
-        return self.create_access_token(db_token.user_id), await self.create_refresh_token(db_token.user_id)
+        if (
+            not db_token
+            or db_token.revoked
+            or db_token.expires_at < datetime.datetime.utcnow()
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+            )
+        return self.create_access_token(
+            db_token.user_id
+        ), await self.create_refresh_token(db_token.user_id)
 
     async def authenticate_user(self, account_schema: AccountLoginSchema):
-        account = await self.account_repository.get_user_by_username_or_email(account_schema.usernameOrEmail)
+        account = await self.account_repository.get_user_by_username_or_email(
+            account_schema.usernameOrEmail
+        )
         if account and verify_password(account_schema.password, account.password):
             return account
         return None
@@ -57,20 +75,30 @@ class AccountService:
     async def get_ticket(self, ticket_id: int):
         return await self.ticket_repository.get_ticket(ticket_id)
 
-    async def get_tickets_by_account_id(self, page: int, page_size: int, account_id: int):
-        return await self.ticket_repository.get_tickets_by_account(page, page_size, account_id)
+    async def get_ticket_details(self, ticket_id: int, account_id: int):
+        return await self.ticket_repository.get_ticket_details(ticket_id, account_id)
 
-    async def get_tickets(self, page: int, page_size: int, account_id: int = None):
-        return await self.ticket_repository.get_tickets(page, page_size, account_id)
+    async def get_tickets(self, account_id: int, page: int, page_size: int):
+        is_staff = await self.is_staff(account_id)
+        return await self.ticket_repository.get_tickets(
+            is_staff,
+            account_id,
+            page,
+            page_size,
+        )
 
     async def create_reply(self, ticket_id: int, reply_data, account_id: int):
-        return await self.ticket_repository.create_reply(ticket_id, reply_data, account_id)
+        return await self.ticket_repository.create_reply(
+            ticket_id, reply_data, account_id
+        )
 
     async def get_replies_for_ticket(self, ticket_id: int):
         return await self.ticket_repository.get_replies_for_ticket(ticket_id)
 
     async def update_reply(self, reply_id: int, new_content: str, account_id: int):
-        return await self.ticket_repository.update_reply(reply_id, new_content, account_id)
+        return await self.ticket_repository.update_reply(
+            reply_id, new_content, account_id
+        )
 
     async def delete_reply(self, reply_id: int, account_id: int):
         return await self.ticket_repository.delete_reply(reply_id, account_id)

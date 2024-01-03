@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 
 from core.date_utils import DateUtils
+from core.errors_handler import ErrorMessage
 from db.tables.account import Account
 from db.tables.reply import Reply
 from db.tables.ticket import Ticket
@@ -19,10 +20,21 @@ class TicketRepository:
     async def create_ticket(self, account_id, ticket_data):
         try:
             new_ticket = Ticket(**ticket_data.dict(), created_by_id=account_id)
+            (account_name,) = (
+                self.session.query(Account.user_name)
+                .filter(Account.id == account_id)
+                .first()
+            )
             self.session.add(new_ticket)
             self.session.commit()
             self.session.refresh(new_ticket)
-            return new_ticket
+            return TicketSchema(
+                ticketId=new_ticket.id,
+                title=new_ticket.title,
+                description=new_ticket.description,
+                createdDate=DateUtils.full_datetime_to_str(new_ticket.created_date),
+                createdBy=account_name,
+            )
         except SQLAlchemyError as err:
             self.session.rollback()
             err = str(err.__dict__["orig"])
@@ -55,26 +67,57 @@ class TicketRepository:
                 detail=str(e),
             )
 
-    async def get_tickets_by_account(self, account_id: int, page: int = None, page_size: int = None):
+    async def get_ticket_details(self, ticket_id: int, account_id: int):
         try:
-            query = self.session.query(Ticket).filter(Ticket.created_by_id == account_id).order_by(
-                Ticket.created_date.desc())
-            total = query.count()
-            if page or page_size:
-                offset = page * page_size
-                limit = page_size
-                query = query.offset(offset).limit(limit)
+            ticket = (
+                self.session.query(
+                    Ticket.title,
+                    Ticket.description,
+                    Ticket.created_by_id,
+                    Account.user_name,
+                )
+                .filter(
+                    Ticket.id == ticket_id,
+                    Account.id == Ticket.created_by_id,
+                )
+                .first()
+            )
 
-            tickets = query.all()
-            response = {"total": total, "data": []}
-            for ticket in tickets:
-                response["data"].append({
-                    "ticket_id": ticket.id,
-                    "title": ticket.title,
-                    "description": ticket.description,
-                    "createDate": DateUtils.full_datetime_to_str(ticket.created_date)
-                })
-            return response
+            if ticket.created_by_id != account_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=ErrorMessage.Permission_Error.value,
+                )
+
+            replies = (
+                self.session.query(
+                    Reply.id,
+                    Reply.content,
+                    Reply.created_by_id,
+                    Reply.created_at,
+                    Account.user_name,
+                )
+                .filter(Reply.ticket_id == ticket_id, Account.id == Reply.created_by_id)
+                .order_by(Reply.created_at.desc())
+                .all()
+            )
+            return TicketSchema(
+                ticketId=ticket_id,
+                title=ticket.title,
+                description=ticket.title,
+                createdDate=DateUtils.full_datetime_to_str(ticket.title),
+                createdBy=ticket.user_name,
+                replies=[
+                    ReplySchema(
+                        replyId=reply.id,
+                        ticketId=ticket_id,
+                        content=reply.content,
+                        createdBy=reply.user_name,
+                        createdDate=DateUtils.full_datetime_to_str(reply.created_at),
+                    )
+                    for reply in replies
+                ],
+            )
         except Exception as e:
             logging.info(f"{str(e)}")
             raise HTTPException(
@@ -82,26 +125,40 @@ class TicketRepository:
                 detail=str(e),
             )
 
-    async def get_tickets(self, page: int, page_size: int, account_id: int = None):
+    async def get_tickets(
+        self, is_staff: bool, account_id: int, page: int, page_size: int
+    ):
         try:
             offset = page * page_size
             limit = page_size
-            query = self.session.query(Ticket.id, Ticket.title, Ticket.description, Ticket.created_date,
-                                       Account.user_name).filter(
-                Ticket.created_by_id == Account.id)
-            if account_id:
+            query = self.session.query(
+                Ticket.id,
+                Ticket.title,
+                Ticket.description,
+                Ticket.created_date,
+                Account.user_name,
+            ).filter(Account.id == Ticket.created_by_id)
+            if not is_staff:
                 query = query.filter(Ticket.created_by_id == account_id)
+
             total = query.count()
             response = {"total": total, "data": []}
-            tickets = query.order_by(Ticket.created_date.desc()).offset(offset).limit(limit).all()
+            tickets = (
+                query.order_by(Ticket.created_date.desc())
+                .offset(offset)
+                .limit(limit)
+                .all()
+            )
             for ticket in tickets:
-                response["data"].append(TicketSchema(
-                    ticketId=ticket.id,
-                    title=ticket.title,
-                    description=ticket.description,
-                    createdBy=ticket.user_name,
-                    createdDate=DateUtils.full_datetime_to_str(ticket.created_date)
-                ))
+                response["data"].append(
+                    TicketSchema(
+                        ticketId=ticket.id,
+                        title=ticket.title,
+                        description=ticket.description,
+                        createdBy=ticket.user_name,
+                        createdDate=DateUtils.full_datetime_to_str(ticket.created_date),
+                    )
+                )
             return response
         except Exception as e:
             logging.info(f"{str(e)}")
@@ -112,8 +169,14 @@ class TicketRepository:
 
     async def create_reply(self, ticket_id, reply_data, account_id):
         try:
-            new_reply = Reply(**reply_data.dict(), ticket_id=ticket_id, created_by_id=account_id)
-            account_name, = self.session.query(Account.user_name).filter(Account.id == account_id).first()
+            new_reply = Reply(
+                **reply_data.dict(), ticket_id=ticket_id, created_by_id=account_id
+            )
+            (account_name,) = (
+                self.session.query(Account.user_name)
+                .filter(Account.id == account_id)
+                .first()
+            )
             self.session.add(new_reply)
             self.session.commit()
             self.session.refresh(new_reply)
@@ -122,7 +185,7 @@ class TicketRepository:
                 ticketId=new_reply.ticket_id,
                 content=new_reply.content,
                 createdBy=account_name,
-                createdDate=DateUtils.full_datetime_to_str(new_reply.created_at)
+                createdDate=DateUtils.full_datetime_to_str(new_reply.created_at),
             )
             return new_reply
         except SQLAlchemyError as err:
@@ -142,18 +205,27 @@ class TicketRepository:
 
     async def get_replies_for_ticket(self, ticket_id: int):
         try:
-            replies = (self.session.query(Reply.id,
-                                          Reply.ticket_id,
-                                          Reply.content,
-                                          Reply.created_at,
-                                          Account.user_name)
-                       .filter(Reply.ticket_id == ticket_id, Account.id == Reply.created_by_id).all())
-            return [ReplySchema(
-                replyId=reply.id,
-                ticketId=reply.ticket_id,
-                content=reply.content,
-                createdBy=reply.user_name,
-                createdDate=DateUtils.full_datetime_to_str(reply.created_at)) for reply in replies]
+            replies = (
+                self.session.query(
+                    Reply.id,
+                    Reply.ticket_id,
+                    Reply.content,
+                    Reply.created_at,
+                    Account.user_name,
+                )
+                .filter(Reply.ticket_id == ticket_id, Account.id == Reply.created_by_id)
+                .all()
+            )
+            return [
+                ReplySchema(
+                    replyId=reply.id,
+                    ticketId=reply.ticket_id,
+                    content=reply.content,
+                    createdBy=reply.user_name,
+                    createdDate=DateUtils.full_datetime_to_str(reply.created_at),
+                )
+                for reply in replies
+            ]
         except Exception as e:
             logging.info(f"{str(e)}")
             raise HTTPException(
@@ -166,7 +238,11 @@ class TicketRepository:
             reply = self.session.query(Reply).filter(Reply.id == reply_id).first()
             if reply.created_by_id != account_id:
                 return None
-            account_name, = self.session.query(Account.user_name).filter(Account.id == account_id).first()
+            (account_name,) = (
+                self.session.query(Account.user_name)
+                .filter(Account.id == account_id)
+                .first()
+            )
             reply.content = new_content
             self.session.add(reply)
             self.session.commit()
@@ -176,7 +252,7 @@ class TicketRepository:
                 ticketId=reply.ticket_id,
                 content=reply.content,
                 createdBy=account_name,
-                createdDate=DateUtils.full_datetime_to_str(reply.created_at)
+                createdDate=DateUtils.full_datetime_to_str(reply.created_at),
             )
         except SQLAlchemyError as err:
             self.session.rollback()

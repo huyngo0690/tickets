@@ -10,6 +10,15 @@ class AccountCreateSchema(BaseModel):
     isAdmin: bool = False
 
 
+class ShowAccountSchema(BaseModel):
+    username: str
+    email: EmailStr
+    isAdmin: bool
+
+    class Config:
+        from_attributes = True
+
+
 class StaffAccountCreateSchema(BaseModel):
     username: str
     email: EmailStr = Field(examples=['abc@mail.com'])
@@ -17,15 +26,9 @@ class StaffAccountCreateSchema(BaseModel):
     isAdmin: bool = True
 
 
-class AccountSchema(BaseModel):
-    uuid: str
-    username: str
-
-
 class AccountLoginResponseSchema(BaseModel):
     accessToken: str
     refreshToken: str
-    profile: AccountSchema
 
 
 class AccountLoginSchema(BaseModel):

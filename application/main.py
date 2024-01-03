@@ -29,7 +29,7 @@ app.add_middleware(
 def include_app(_app):
     _app.include_router(account_routes.router, tags=["user"], prefix="/api/user")
     _app.include_router(staff_routes.router, tags=["staff"], prefix="/api/staff")
-    _app.include_router(ticket_routes.router, tags=["ticket"], prefix="/api/ticket")
+    _app.include_router(ticket_routes.router, tags=["ticket"], prefix="/api")
 
 
 def create_tables():  # new
@@ -51,17 +51,17 @@ async def middleware(request: Request, call_next):
         logging.info(f"Request: {request.url} finished in {process_time}")
 
 
-if not os.path.exists('logs'):
-    os.makedirs('logs')
+if not os.path.exists("logs"):
+    os.makedirs("logs")
 
 # Logging configuration
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        RotatingFileHandler('logs/app.log', maxBytes=100000, backupCount=10),
-        logging.StreamHandler()
-    ]
+        RotatingFileHandler("logs/app.log", maxBytes=100000, backupCount=10),
+        logging.StreamHandler(),
+    ],
 )
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ logger = logging.getLogger(__name__)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     logger.error(f"Unhandled exception occurred: {exc}", exc_info=True)
-    errors = [{"field": e['loc'][1], "error": e['msg']} for e in exc.errors()]
+    errors = [{"field": e["loc"][1], "error": e["msg"]} for e in exc.errors()]
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": errors},
@@ -118,6 +118,4 @@ if __name__ == "__main__":
     create_tables()
     import uvicorn
 
-    uvicorn.run(
-        app, host="0.0.0.0", port=settings.APP_PORT
-    )
+    uvicorn.run(app, host="0.0.0.0", port=settings.APP_PORT)

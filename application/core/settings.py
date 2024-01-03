@@ -3,8 +3,6 @@ import os
 from pydantic_settings import BaseSettings
 
 
-
-
 class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
         os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
@@ -22,7 +20,6 @@ class Settings(BaseSettings):
     )
     APP_PORT: int = os.environ.get("APP_PORT", "8080")
     DEBUG_PORT: int = os.environ.get("DEBUG_PORT", "8081")
-    # LOGGING_CONF: str = os.environ.get("LOGGING_CONF", "core/logging.conf")
     LOGGER: str = os.environ.get("LOGGER", "commonLogger")
     MYSQL_HOST: str = os.environ.get("MYSQL_HOST", "")
     MYSQL_USER: str = os.environ.get("MYSQL_USER", "")
